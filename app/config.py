@@ -11,6 +11,6 @@ load_dotenv(dotenv_path=ENV_FILE)
 
 # Fetch PORT from .env with fallback and integer conversion
 try:
-    PORT = int(os.getenv("PORT", 8000))
+    PORT = int(os.getenv("PORT", 5000))
 except ValueError:
-    PORT = 8000  # Fallback if PORT in .env is not a valid integer
+    PORT = 5000  # Fallback if PORT in .env is not a valid integer

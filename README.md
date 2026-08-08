@@ -163,10 +163,10 @@ pip install -r requirements.txt
 ### 4. Run Application
 
 ```bash
-python app/main.py
+python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 5000
 ```
 
-*The server will start using `PORT` loaded from `.env` (default: `5000`).*
+*The server will start with auto reload enabled at `http://127.0.0.1:5000`. If you change `PORT` in `.env`, update the `--port` value to match.*
 
 ---
 
