@@ -1,129 +1,253 @@
 # Installation & Setup Guide
 
-This comprehensive guide will walk you through setting up, configuring, and running the **Expense Tracker API** on Windows, macOS, or Linux.
+This guide explains how to run the Expense Tracker API locally and with Docker Compose behind Nginx.
 
 ---
 
 ## System Requirements
 
-Before starting, ensure you have the following installed:
+For local development:
 
-- **Python**: Version 3.10 or higher (`python --version`)
-- **pip**: Python package manager (`pip --version`)
-- **Git**: Source control (`git --version`)
+- Python 3.10 or higher
+- pip
+- Git
+
+For Docker development:
+
+- Docker Desktop or Docker Engine
+- Docker Compose v2
+
+On Windows, Docker Desktop must be running with the Linux engine enabled before using `docker compose`.
 
 ---
 
-## 1. Environment Configuration
+## Environment Configuration
 
-The application reads configuration values (such as server `PORT`) dynamically from a `.env` file at project root using `python-dotenv`.
-
-1. Copy `.env.example` to create your local `.env` file:
+Create a local `.env` file:
 
 ```bash
 cp .env.example .env
 ```
 
-2. Open `.env` in your code editor and adjust variables as needed:
+Use:
 
 ```env
 PORT=5000
 ```
 
+The application reads `PORT` from the environment and falls back to `5000` when it is missing or invalid.
+
+In Docker Compose, `PORT` is explicitly set to `"5000"` for every FastAPI container so `.env` cannot accidentally make the app listen on a different internal port.
+
 ---
 
-## 2. Virtual Environment Setup
+## Local Python Setup
 
-Isolate your project dependencies by creating a Python virtual environment.
+Create a virtual environment:
 
-### Windows (PowerShell)
+```bash
+python -m venv .venv
+```
+
+Activate it on Windows PowerShell:
 
 ```powershell
-# Create virtual environment
-python -m venv .venv
-
-# Activate virtual environment
 .venv\Scripts\Activate.ps1
 ```
 
-> **Note for PowerShell execution policy error**:
-> If you encounter an execution policy restriction, run:
-> `Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope Process`
-
-### Windows (Command Prompt / CMD)
+Activate it on Windows CMD:
 
 ```cmd
-python -m venv .venv
 .venv\Scripts\activate.bat
 ```
 
-### macOS / Linux (Bash / Zsh)
+Activate it on macOS/Linux:
 
 ```bash
-# Create virtual environment
-python3 -m venv .venv
-
-# Activate virtual environment
 source .venv/bin/activate
 ```
 
----
-
-## 3. Install Dependencies
-
-With the virtual environment active, install all required packages listed in `requirements.txt`:
+Install dependencies:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-To confirm installation, you can inspect installed packages:
+Run the local development server with auto reload:
 
 ```bash
-pip list
+python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 5000
+```
+
+Local URLs:
+
+```text
+http://127.0.0.1:5000
+http://127.0.0.1:5000/docs
+http://127.0.0.1:5000/redoc
 ```
 
 ---
 
-## 4. Running the Server
+## Docker Compose Setup
 
-You can launch the FastAPI server using two alternative methods:
-
-### Method A: Programmatic Execution (Recommended)
-
-Run `app/main.py` directly using Python. The script programmatically reads `PORT` from `.env` and triggers Uvicorn:
+Start the full stack:
 
 ```bash
-python app/main.py
+docker compose up --build
 ```
 
-### Method B: Direct Uvicorn CLI
-
-Alternatively, run Uvicorn directly from the command line:
+Run in detached mode:
 
 ```bash
-python -m uvicorn app.main:app --reload --port 5000
+docker compose up -d --build
+```
+
+Stop the stack:
+
+```bash
+docker compose down
+```
+
+View logs:
+
+```bash
+docker compose logs -f
+```
+
+Public Nginx URL:
+
+```text
+http://localhost:8080
+```
+
+Interactive docs through Nginx:
+
+```text
+http://localhost:8080/docs
+http://localhost:8080/redoc
 ```
 
 ---
 
-## 5. Verifying Installation
+## Docker Service Layout
 
-Once started, test the application by visiting:
+```text
+nginx:80
+  -> app1:5000
+  -> app2:5000
+  -> app3:5000
+  -> app4:5000
+  -> app5:5000
+```
 
-- **Root Health Check**: [http://127.0.0.1:5000/](http://127.0.0.1:5000/)
-- **Swagger Documentation**: [http://127.0.0.1:5000/docs](http://127.0.0.1:5000/docs)
-- **ReDoc Documentation**: [http://127.0.0.1:5000/redoc](http://127.0.0.1:5000/redoc)
+Only Nginx publishes a host port:
+
+```yaml
+ports:
+  - "8080:80"
+```
+
+FastAPI containers use `expose: "5000"` only. This keeps port `5000` private inside Docker's `backend` network.
 
 ---
 
-## Troubleshooting & FAQ
+## Health Checks
 
-### Issue 1: `Port 5000 is already in use`
-- **Solution**: Edit `.env` and change `PORT=5000` to an open port (e.g. `PORT=8000`), then restart the server.
+Each FastAPI container has a health check that calls:
 
-### Issue 2: `ModuleNotFoundError: No module named 'app'`
-- **Solution**: Ensure you are running commands from the project root folder (`Expense Tracker API with Python & FastAPI/`), not from inside `app/`.
+```text
+http://127.0.0.1:5000/
+```
 
-### Issue 3: Virtual environment not activating on VS Code
-- **Solution**: Open command palette (`Ctrl+Shift+P`), select **Python: Select Interpreter**, and choose `.venv/Scripts/python.exe`.
+Nginx starts after all five FastAPI services are healthy.
+
+Check status:
+
+```bash
+docker compose ps
+```
+
+---
+
+## Verify Load Balancing
+
+Open or refresh:
+
+```text
+http://localhost:8080
+```
+
+Expected response:
+
+```json
+{
+  "success": true,
+  "message": "Hello, World!",
+  "instance": {
+    "pid": 1,
+    "hostname": "container-id"
+  }
+}
+```
+
+The `hostname` value should vary across repeated requests, showing that different FastAPI containers are receiving traffic.
+
+Follow logs:
+
+```bash
+docker compose logs -f app1 app2 app3 app4 app5 nginx
+```
+
+---
+
+## Troubleshooting
+
+### `uvicorn: command not found`
+
+Use Python module execution:
+
+```bash
+python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 5000
+```
+
+Also confirm dependencies are installed:
+
+```bash
+pip install -r requirements.txt
+```
+
+### Docker cannot connect to `dockerDesktopLinuxEngine`
+
+Start Docker Desktop and wait until it reports that Docker is running. Then retry:
+
+```bash
+docker compose up --build
+```
+
+On Windows, this can also help:
+
+```bash
+wsl --shutdown
+```
+
+Then reopen Docker Desktop.
+
+### Port `8080` is already in use
+
+Change the host port in `docker-compose.yml`:
+
+```yaml
+ports:
+  - "8081:80"
+```
+
+Then access:
+
+```text
+http://localhost:8081
+```
+
+### `ModuleNotFoundError: No module named 'app'`
+
+Run commands from the project root, not from inside the `app/` directory.

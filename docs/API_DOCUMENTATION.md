@@ -1,86 +1,107 @@
 # API Documentation
 
-Welcome to the **Expense Tracker API** specification. This document outlines the available HTTP endpoints, standard response models, error structures, and example requests.
+This document describes the currently available API endpoints and response formats.
 
 ---
 
-## Interactive Documentation
+## Base URLs
 
-When the application is running, interactive OpenAPI documentation can be accessed via:
+Local Python server:
 
-- **Swagger UI**: [http://127.0.0.1:5000/docs](http://127.0.0.1:5000/docs)
-- **ReDoc**: [http://127.0.0.1:5000/redoc](http://127.0.0.1:5000/redoc)
+```text
+http://127.0.0.1:5000
+```
 
-*(Note: Replace `5000` with your custom `PORT` if configured differently in `.env`)*
+Docker/Nginx server:
+
+```text
+http://localhost:8080
+```
+
+Interactive documentation:
+
+```text
+http://localhost:8080/docs
+http://localhost:8080/redoc
+```
 
 ---
 
-## Standard Response Format
+## Response Formats
 
-All API responses strictly follow a generic response wrapper (`StandardResponse`) defined in [`app/shared/sendResponse.py`](../app/shared/sendResponse.py).
+Most API routes should use the shared `StandardResponse` model from [`app/shared/sendResponse.py`](../app/shared/sendResponse.py).
 
-### Schema Definition
+The root `/` endpoint is an exception. It returns instance metadata for Docker/Nginx load-balancer verification.
+
+### StandardResponse
 
 ```typescript
 interface StandardResponse<T> {
-  success: boolean;       // Indicates if the operation succeeded
-  message: string;        // Human-readable response summary
-  data?: T;               // Primary response payload (Generic object/array)
-  meta?: Meta;            // Metadata object for pagination/summary stats
+  success: boolean;
+  message: string;
+  data?: T;
+  meta?: Meta;
 }
 
 interface Meta {
-  page?: number;          // Current page index (1-based)
-  limit?: number;         // Items requested per page
-  total?: number;         // Total items available in backend storage
-  total_pages?: number;   // Total calculated pages
+  page?: number;
+  limit?: number;
+  total?: number;
+  total_pages?: number;
 }
 ```
 
 ---
 
-## Endpoints Specification
+## Endpoints
 
-### 1. Root / Health Check Endpoint
+### Root Diagnostic Endpoint
 
-Retrieves basic server status and confirmation that the API is running.
+Returns a basic status response plus the process id and container hostname that handled the request.
 
 - **URL**: `/`
 - **Method**: `GET`
-- **Authentication Required**: No
+- **Authentication**: No
+- **Used for**: Health checks and load-balancer verification
 
 #### Response
-
-- **Status Code**: `200 OK`
-- **Content-Type**: `application/json`
 
 ```json
 {
   "success": true,
-  "message": "Hello, World!"
+  "message": "Hello, World!",
+  "instance": {
+    "pid": 1,
+    "hostname": "container-id"
+  }
 }
 ```
 
-#### cURL Example
+#### cURL
+
+Local:
 
 ```bash
-curl -X GET "http://127.0.0.1:5000/" -H "accept: application/json"
+curl http://127.0.0.1:5000/
+```
+
+Through Nginx:
+
+```bash
+curl http://localhost:8080/
 ```
 
 ---
 
-### 2. Get Items List (API v1)
+### Get Items List
 
-Retrieves a paginated list of items registered under API Version 1.
+Returns an example list of items from API version 1.
 
 - **URL**: `/api/v1/items`
 - **Method**: `GET`
-- **Authentication Required**: No
+- **Authentication**: No
 
 #### Response
-
-- **Status Code**: `200 OK`
-- **Content-Type**: `application/json`
 
 ```json
 {
@@ -100,51 +121,55 @@ Retrieves a paginated list of items registered under API Version 1.
 }
 ```
 
-#### cURL Example
+#### cURL
+
+Local:
 
 ```bash
-curl -X GET "http://127.0.0.1:5000/api/v1/items" -H "accept: application/json"
+curl http://127.0.0.1:5000/api/v1/items
 ```
 
-#### Python `requests` Example
+Through Nginx:
+
+```bash
+curl http://localhost:8080/api/v1/items
+```
+
+#### Python Example
 
 ```python
 import requests
 
-url = "http://127.0.0.1:5000/api/v1/items"
-response = requests.get(url)
+response = requests.get("http://localhost:8080/api/v1/items")
+payload = response.json()
 
-if response.status_code == 200:
-    payload = response.json()
-    print("Success:", payload["success"])
-    print("Message:", payload["message"])
-    print("Data:", payload["data"])
-    print("Meta:", payload["meta"])
+print(payload["success"])
+print(payload["message"])
+print(payload["data"])
+print(payload["meta"])
 ```
 
 ---
 
 ## HTTP Status Codes
 
-The API utilizes standard HTTP status codes:
-
 | Code | Status | Description |
 | :--- | :--- | :--- |
-| `200` | OK | Request processed successfully. |
-| `400` | Bad Request | Invalid parameter or payload sent by client. |
-| `404` | Not Found | Requested endpoint or resource does not exist. |
-| `422` | Unprocessable Entity | Pydantic data validation failed. |
-| `500` | Internal Server Error | Unexpected server error occurred. |
+| `200` | OK | Request processed successfully |
+| `400` | Bad Request | Invalid request data |
+| `404` | Not Found | Endpoint or resource does not exist |
+| `422` | Unprocessable Entity | Validation failed |
+| `500` | Internal Server Error | Unexpected server error |
+| `502` | Bad Gateway | Nginx could not reach a healthy upstream |
+| `503` | Service Unavailable | Upstream service unavailable |
 
 ---
 
-## Future Endpoints (Planned)
+## Planned Endpoints
 
-The following endpoints are scheduled for upcoming releases:
-
-- `POST /api/v1/expenses` — Create a new expense entry
-- `GET /api/v1/expenses` — List and filter expenses
-- `GET /api/v1/expenses/{id}` — Get detailed information on a single expense
-- `PUT /api/v1/expenses/{id}` — Update existing expense details
-- `DELETE /api/v1/expenses/{id}` — Remove an expense entry
-- `GET /api/v1/categories` — List expense categories
+- `POST /api/v1/expenses`
+- `GET /api/v1/expenses`
+- `GET /api/v1/expenses/{id}`
+- `PUT /api/v1/expenses/{id}`
+- `DELETE /api/v1/expenses/{id}`
+- `GET /api/v1/categories`
