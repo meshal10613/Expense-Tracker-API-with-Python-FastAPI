@@ -3,6 +3,7 @@ from pydantic import BaseModel
 
 T = TypeVar("T")
 
+
 class Meta(BaseModel):
     page: Optional[int] = None
     limit: Optional[int] = None
@@ -10,8 +11,14 @@ class Meta(BaseModel):
     total_pages: Optional[int] = None
 
 
-class StandardResponse(BaseModel, Generic[T]):
+class Success(BaseModel, Generic[T]):
     success: bool
     message: str
     data: Optional[T] = None
     meta: Optional[Meta] = None
+
+
+class Error(BaseModel):
+    success: bool
+    message: str
+    details: Optional[str] = None
