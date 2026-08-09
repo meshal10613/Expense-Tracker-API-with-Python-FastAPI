@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Added
 
+- Optional `search` (by name, case-insensitive), `sort_by` (field selection), and `order` (`asc`/`desc`) query parameters to `GET /api/v1/expenses`.
 - Expenses endpoint `/api/v1/expenses` returning stored expense data from `db/expenses.json`.
 - `db/` directory copying to `Dockerfile` to ensure JSON data file availability within Docker containers.
 - Dockerfile for containerized FastAPI/Uvicorn runtime.

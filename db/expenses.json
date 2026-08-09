@@ -5,5 +5,68 @@
         "category": "Food",
         "date": "2024-06-01",
         "description": "Weekly grocery shopping at the local supermarket."
+    },
+    "E002": {
+        "name": "Electricity Bill",
+        "amount": 85.5,
+        "category": "Utilities",
+        "date": "2024-06-03",
+        "description": "Monthly electricity bill payment."
+    },
+    "E003": {
+        "name": "Internet Bill",
+        "amount": 45.0,
+        "category": "Utilities",
+        "date": "2024-06-05",
+        "description": "Monthly home internet subscription payment."
+    },
+    "E004": {
+        "name": "Restaurant Dinner",
+        "amount": 32.25,
+        "category": "Food",
+        "date": "2024-06-07",
+        "description": "Dinner at a local restaurant with friends."
+    },
+    "E005": {
+        "name": "Bus Fare",
+        "amount": 12.5,
+        "category": "Transportation",
+        "date": "2024-06-10",
+        "description": "Public transportation expenses for the week."
+    },
+    "E006": {
+        "name": "Mobile Phone Bill",
+        "amount": 25.0,
+        "category": "Utilities",
+        "date": "2024-06-12",
+        "description": "Monthly mobile phone bill payment."
+    },
+    "E007": {
+        "name": "New Shoes",
+        "amount": 75.99,
+        "category": "Shopping",
+        "date": "2024-06-15",
+        "description": "Purchased a new pair of running shoes."
+    },
+    "E008": {
+        "name": "Medicine",
+        "amount": 28.5,
+        "category": "Health",
+        "date": "2024-06-18",
+        "description": "Purchased basic medicines from the pharmacy."
+    },
+    "E009": {
+        "name": "Movie Tickets",
+        "amount": 20.0,
+        "category": "Entertainment",
+        "date": "2024-06-20",
+        "description": "Movie tickets for an evening with friends."
+    },
+    "E010": {
+        "name": "Coffee",
+        "amount": 8.75,
+        "category": "Food",
+        "date": "2024-06-22",
+        "description": "Coffee and snacks at a local cafe."
     }
 }

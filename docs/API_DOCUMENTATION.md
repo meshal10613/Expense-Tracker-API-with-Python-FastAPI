@@ -105,11 +105,19 @@ curl http://localhost:8080/
 
 ### Get Expenses List
 
-Returns stored expense records loaded from `db/expenses.json`.
+Returns stored expense records loaded from `db/expenses.json`. Supports optional search by name, field sorting, and ordering.
 
 - **URL**: `/api/v1/expenses` (or `/api/v1/expenses/`)
 - **Method**: `GET`
 - **Authentication**: No
+
+#### Query Parameters
+
+| Parameter | Type | Required | Default | Description |
+| :--- | :--- | :--- | :--- | :--- |
+| `search` | `string` | No | `null` | Case-insensitive search on expense name |
+| `sort_by` | `string` | No | `null` | Field to sort by: `id`, `name`, `amount`, `category`, `date`, `description` |
+| `order` | `string` | No | `"asc"` | Sort ordering: `asc` or `desc` |
 
 #### Response
 
@@ -117,33 +125,32 @@ Returns stored expense records loaded from `db/expenses.json`.
 {
   "success": true,
   "message": "Expenses retrieved successfully",
-  "data": {
-    "expenses": {
-      "E001": {
-        "name": "Groceries",
-        "amount": 150.75,
-        "category": "Food",
-        "date": "2024-06-01",
-        "description": "Weekly grocery shopping at the local supermarket."
-      }
+  "data": [
+    {
+      "id": "E001",
+      "name": "Groceries",
+      "amount": 150.75,
+      "category": "Food",
+      "date": "2024-06-01",
+      "description": "Weekly grocery shopping at the local supermarket."
     }
-  },
+  ],
   "meta": null
 }
 ```
 
 #### cURL
 
-Local:
-
-```bash
-curl http://127.0.0.1:5000/api/v1/expenses/
-```
-
-Through Nginx:
+All expenses:
 
 ```bash
 curl http://localhost:8080/api/v1/expenses/
+```
+
+Search and sort:
+
+```bash
+curl "http://localhost:8080/api/v1/expenses/?search=bill&sort_by=amount&order=desc"
 ```
 
 #### Python Example
@@ -151,12 +158,16 @@ curl http://localhost:8080/api/v1/expenses/
 ```python
 import requests
 
-response = requests.get("http://localhost:8080/api/v1/expenses/")
+response = requests.get(
+    "http://localhost:8080/api/v1/expenses/",
+    params={"search": "bill", "sort_by": "amount", "order": "desc"}
+)
 payload = response.json()
 
 print(payload["success"])
 print(payload["message"])
-print(payload["data"]["expenses"])
+print(payload["data"])
+```
 ```
 
 ---
