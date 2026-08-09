@@ -17,6 +17,7 @@ A production-ready, clean, and scalable RESTful API built with **Python** and **
 - [Project Directory Structure](#-project-directory-structure)
 - [Standardized API Response](#-standardized-api-response)
 - [Quick Start Guide](#-quick-start-guide)
+- [Docker Setup](#-docker-setup)
 - [Interactive API Documentation](#-interactive-api-documentation)
 - [Extended Documentation](#-extended-documentation)
 - [Roadmap](#-roadmap)
@@ -167,6 +168,41 @@ python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 5000
 ```
 
 *The server will start with auto reload enabled at `http://127.0.0.1:5000`. If you change `PORT` in `.env`, update the `--port` value to match.*
+
+---
+
+## 🐳 Docker Setup
+
+Run the API behind Nginx with 5 FastAPI instances:
+
+```bash
+docker compose up --build
+```
+
+Nginx will be available at:
+
+```text
+http://127.0.0.1:8080
+```
+
+Docker service layout:
+
+```text
+nginx -> app1:5000
+      -> app2:5000
+      -> app3:5000
+      -> app4:5000
+      -> app5:5000
+```
+
+Useful Docker commands:
+
+```bash
+docker compose up --build
+docker compose up -d --build
+docker compose down
+docker compose logs -f
+```
 
 ---
 
