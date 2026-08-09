@@ -1,0 +1,9 @@
+{
+    "E001": {
+        "name": "Groceries",
+        "amount": 150.75,
+        "category": "Food",
+        "date": "2024-06-01",
+        "description": "Weekly grocery shopping at the local supermarket."
+    }
+}

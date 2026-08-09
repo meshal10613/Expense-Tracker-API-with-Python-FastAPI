@@ -11,16 +11,18 @@ A clean FastAPI REST API with versioned routing, standardized API responses, Doc
 
 ## Table of Contents
 
-- [Features](#features)
-- [Architecture](#architecture)
-- [Project Structure](#project-structure)
-- [Quick Start](#quick-start)
-- [Docker And Nginx](#docker-and-nginx)
-- [API Documentation](#api-documentation)
-- [Load Balancer Verification](#load-balancer-verification)
-- [Extended Documentation](#extended-documentation)
-- [Roadmap](#roadmap)
-- [License](#license)
+- [Expense Tracker API with Python \& FastAPI](#expense-tracker-api-with-python--fastapi)
+  - [Table of Contents](#table-of-contents)
+  - [Features](#features)
+  - [Architecture](#architecture)
+  - [Project Structure](#project-structure)
+  - [Quick Start](#quick-start)
+  - [Docker And Nginx](#docker-and-nginx)
+  - [API Documentation](#api-documentation)
+  - [Load Balancer Verification](#load-balancer-verification)
+  - [Extended Documentation](#extended-documentation)
+  - [Roadmap](#roadmap)
+  - [License](#license)
 
 ---
 
@@ -28,7 +30,7 @@ A clean FastAPI REST API with versioned routing, standardized API responses, Doc
 
 - **FastAPI application** served by Uvicorn.
 - **Versioned API routing** under `/api/v1`.
-- **Standard response model** for API routes through `StandardResponse`.
+- **Standardized response models** (`Success`, `Error`, `Meta`) for API endpoints.
 - **Environment-based port config** through `PORT`, defaulting to `5000`.
 - **Dockerized runtime** using `python:3.12-slim`.
 - **Nginx reverse proxy** exposed on host port `8080`.
@@ -69,6 +71,8 @@ Nginx and the FastAPI containers communicate over Docker's internal `backend` ne
 ├── .env.example
 ├── Dockerfile
 ├── docker-compose.yml
+├── db/
+│   └── expenses.json
 ├── nginx/
 │   └── default.conf
 ├── requirements.txt
@@ -86,11 +90,13 @@ Nginx and the FastAPI containers communicate over Docker's internal `backend` ne
     ├── api/
     │   ├── router.py
     │   └── v1/
-    │       └── router.py
+    │       ├── router.py
+    │       └── expenses/
+    │           └── router.py
     ├── core/
     ├── models/
     └── shared/
-        └── sendResponse.py
+        └── response.py
 ```
 
 ---
@@ -142,7 +148,7 @@ python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 5000
 Local app URL:
 
 ```text
-http://127.0.0.1:5000
+http://localhost:5000
 ```
 
 ---
@@ -193,7 +199,7 @@ http://localhost:8080/redoc
 | Method | Endpoint | Description |
 | :--- | :--- | :--- |
 | `GET` | `/` | Root diagnostic endpoint with container instance metadata |
-| `GET` | `/api/v1/items` | Example v1 items endpoint using `StandardResponse` |
+| `GET` | `/api/v1/expenses` | Retrieve expense records wrapped in standard `Success` model |
 
 Root response example:
 
@@ -248,7 +254,8 @@ Nginx currently uses `least_conn`, so traffic is sent to the upstream container 
 
 ## Roadmap
 
-- [ ] Implement Expense CRUD operations at `/api/v1/expenses`.
+- [x] Implement Expense retrieval at `/api/v1/expenses`.
+- [ ] Implement full Expense CRUD operations (Create, Update, Delete) at `/api/v1/expenses`.
 - [ ] Add Category management endpoints at `/api/v1/categories`.
 - [ ] Connect SQLAlchemy or SQLModel with SQLite/PostgreSQL.
 - [ ] Add JWT authentication and authorization.

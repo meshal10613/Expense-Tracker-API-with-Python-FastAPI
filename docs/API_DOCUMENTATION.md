@@ -29,14 +29,14 @@ http://localhost:8080/redoc
 
 ## Response Formats
 
-Most API routes should use the shared `StandardResponse` model from [`app/shared/sendResponse.py`](../app/shared/sendResponse.py).
+Most API routes use the standard `Success` or `Error` model from [`app/shared/response.py`](../app/shared/response.py).
 
 The root `/` endpoint is an exception. It returns instance metadata for Docker/Nginx load-balancer verification.
 
-### StandardResponse
+### Success Response
 
 ```typescript
-interface StandardResponse<T> {
+interface Success<T> {
   success: boolean;
   message: string;
   data?: T;
@@ -48,6 +48,16 @@ interface Meta {
   limit?: number;
   total?: number;
   total_pages?: number;
+}
+```
+
+### Error Response
+
+```typescript
+interface Error {
+  success: boolean;
+  message: string;
+  details?: string;
 }
 ```
 
@@ -93,11 +103,11 @@ curl http://localhost:8080/
 
 ---
 
-### Get Items List
+### Get Expenses List
 
-Returns an example list of items from API version 1.
+Returns stored expense records loaded from `db/expenses.json`.
 
-- **URL**: `/api/v1/items`
+- **URL**: `/api/v1/expenses` (or `/api/v1/expenses/`)
 - **Method**: `GET`
 - **Authentication**: No
 
@@ -106,18 +116,19 @@ Returns an example list of items from API version 1.
 ```json
 {
   "success": true,
-  "message": "Items retrieved successfully",
-  "data": [
-    "item1",
-    "item2",
-    "item3"
-  ],
-  "meta": {
-    "page": 1,
-    "limit": 10,
-    "total": 3,
-    "total_pages": 1
-  }
+  "message": "Expenses retrieved successfully",
+  "data": {
+    "expenses": {
+      "E001": {
+        "name": "Groceries",
+        "amount": 150.75,
+        "category": "Food",
+        "date": "2024-06-01",
+        "description": "Weekly grocery shopping at the local supermarket."
+      }
+    }
+  },
+  "meta": null
 }
 ```
 
@@ -126,13 +137,13 @@ Returns an example list of items from API version 1.
 Local:
 
 ```bash
-curl http://127.0.0.1:5000/api/v1/items
+curl http://127.0.0.1:5000/api/v1/expenses/
 ```
 
 Through Nginx:
 
 ```bash
-curl http://localhost:8080/api/v1/items
+curl http://localhost:8080/api/v1/expenses/
 ```
 
 #### Python Example
@@ -140,13 +151,12 @@ curl http://localhost:8080/api/v1/items
 ```python
 import requests
 
-response = requests.get("http://localhost:8080/api/v1/items")
+response = requests.get("http://localhost:8080/api/v1/expenses/")
 payload = response.json()
 
 print(payload["success"])
 print(payload["message"])
-print(payload["data"])
-print(payload["meta"])
+print(payload["data"]["expenses"])
 ```
 
 ---

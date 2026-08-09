@@ -10,7 +10,7 @@ ENV_FILE = BASE_DIR / ".env"
 load_dotenv(dotenv_path=ENV_FILE)
 
 # Database file paths
-DB_USER_FILE = BASE_DIR / "db" / "user.json"
+DB_EXPENSES_FILE = BASE_DIR / "db" / "expenses.json"
 
 # Fetch PORT from .env with fallback and integer conversion
 try:

@@ -99,12 +99,14 @@ sequenceDiagram
     participant App as FastAPI appN:5000
     participant Router as app/api/router.py
     participant V1 as app/api/v1/router.py
+    participant Expenses as app/api/v1/expenses/router.py
 
-    Client->>Nginx: GET /api/v1/items on localhost:8080
+    Client->>Nginx: GET /api/v1/expenses on localhost:8080
     Nginx->>App: Proxy request to one healthy upstream
     App->>Router: Match /api
-    Router->>V1: Match /v1/items
-    V1-->>App: Return StandardResponse payload
+    Router->>V1: Match /v1
+    V1->>Expenses: Match /expenses
+    Expenses-->>App: Return Success model payload with db/expenses.json
     App-->>Nginx: JSON response
     Nginx-->>Client: HTTP 200
 ```
@@ -133,20 +135,22 @@ graph TD
     Main["app/main.py<br/>FastAPI app"]
     ApiRouter["app/api/router.py<br/>/api"]
     V1Router["app/api/v1/router.py<br/>/v1"]
-    Items["GET /items"]
+    ExpensesRouter["app/api/v1/expenses/router.py<br/>/expenses"]
+    ExpensesEndpoint["GET /expenses"]
     Root["GET /"]
 
     Main --> Root
     Main --> ApiRouter
     ApiRouter --> V1Router
-    V1Router --> Items
+    V1Router --> ExpensesRouter
+    ExpensesRouter --> ExpensesEndpoint
 ```
 
 Final endpoint paths:
 
 ```text
 GET /
-GET /api/v1/items
+GET /api/v1/expenses
 ```
 
 ---

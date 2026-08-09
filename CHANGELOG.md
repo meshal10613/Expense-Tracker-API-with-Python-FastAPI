@@ -10,6 +10,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Added
 
+- Expenses endpoint `/api/v1/expenses` returning stored expense data from `db/expenses.json`.
+- `db/` directory copying to `Dockerfile` to ensure JSON data file availability within Docker containers.
 - Dockerfile for containerized FastAPI/Uvicorn runtime.
 - Docker Compose stack with five FastAPI services: `app1`, `app2`, `app3`, `app4`, and `app5`.
 - Nginx reverse proxy and load balancer on host port `8080`.
@@ -18,16 +20,22 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Root diagnostic response with `pid` and `hostname` for load-balancer verification.
 - Docker setup and verification documentation.
 
+### Fixed
+
+- Fixed `TabError` (inconsistent use of tabs and spaces in indentation) in [`app/api/v1/expenses/router.py`](app/api/v1/expenses/router.py).
+- Fixed relative file loading path in `load_data()` by using [`DB_EXPENSES_FILE`](app/config.py) from `app.config`.
+- Fixed missing `db/` directory in `Dockerfile`.
+
 ### Changed
 
 - Local development command now uses `python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 5000`.
 - Uvicorn startup now uses `app.main:app` and binds to `0.0.0.0`.
 - Docker runtime explicitly uses `PORT=5000` to avoid `.env` conflicts.
-- Documentation updated to reflect Docker, Nginx, health checks, and current API responses.
+- Updated documentation (`README.md`, `API_DOCUMENTATION.md`, `ARCHITECTURE.md`, `SETUP_GUIDE.md`) to reflect `GET /api/v1/expenses`, standardized response models (`Success`, `Error`, `Meta`), and accurate project layout.
 
 ### Planned
 
-- Expense CRUD endpoints under `/api/v1/expenses`.
+- Full Expense CRUD operations (Create, Update, Delete) under `/api/v1/expenses`.
 - Category management endpoints under `/api/v1/categories`.
 - Database integration with SQLAlchemy or SQLModel.
 - JWT authentication and authorization.
