@@ -5,7 +5,7 @@
 [![Pydantic](https://img.shields.io/badge/Pydantic-v2-E92063?style=for-the-badge&logo=pydantic&logoColor=white)](https://docs.pydantic.dev/)
 [![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)](LICENSE)
 
-A clean FastAPI REST API with versioned routing, standardized API responses, Docker support, and an Nginx reverse proxy that load balances traffic across five FastAPI containers.
+A clean FastAPI REST API with versioned routing, Pydantic V2 validation, automated date defaults, service-layer JSON persistence, standardized API responses, Docker support, and an Nginx reverse proxy load balancing traffic across five FastAPI containers.
 
 ---
 
@@ -29,6 +29,11 @@ A clean FastAPI REST API with versioned routing, standardized API responses, Doc
 ## Features
 
 - **FastAPI application** served by Uvicorn.
+- **Pydantic V2 validation**: Strict schema validation for creation and updates.
+- **Automated Date Generation**: When creating an expense, `date` is optional and auto-generates to the current date (`YYYY-MM-DD`) if omitted.
+- **Smart Update Validation**: Custom `@model_validator` guarantees at least 1 field is provided for updates (`PUT`).
+- **Layered Architecture**: Clean separation between Routers (`app/api`), Schemas (`app/schemas`), and Services (`app/services`).
+- **Full Expense CRUD**: Support for listing, filtering/sorting, creating, updating, and deleting expenses.
 - **Versioned API routing** under `/api/v1`.
 - **Standardized response models** (`Success`, `Error`, `Meta`) for API endpoints.
 - **Environment-based port config** through `PORT`, defaulting to `5000`.
@@ -95,6 +100,12 @@ Nginx and the FastAPI containers communicate over Docker's internal `backend` ne
     │           └── router.py
     ├── core/
     ├── models/
+    ├── schemas/
+    │   ├── __init__.py
+    │   └── expense.py
+    ├── services/
+    │   ├── __init__.py
+    │   └── expense_service.py
     └── shared/
         └── response.py
 ```
@@ -199,20 +210,11 @@ http://localhost:8080/redoc
 | Method | Endpoint | Description |
 | :--- | :--- | :--- |
 | `GET` | `/` | Root diagnostic endpoint with container instance metadata |
-| `GET` | `/api/v1/expenses` | Retrieve expense records wrapped in standard `Success` model |
-
-Root response example:
-
-```json
-{
-  "success": true,
-  "message": "Hello, World!",
-  "instance": {
-    "pid": 1,
-    "hostname": "container-id"
-  }
-}
-```
+| `GET` | `/api/v1/expenses` | Retrieve expense records wrapped in standard `Success` model (supports search, sort_by, order) |
+| `GET` | `/api/v1/expenses/{expense_id}` | Retrieve a specific expense record by ID |
+| `POST` | `/api/v1/expenses/` | Create a new expense. `date` is optional (auto-generated if omitted). Validated via Pydantic |
+| `PUT` | `/api/v1/expenses/{expense_id}` | Update an existing expense. Require at least 1 field. Validated via Pydantic |
+| `DELETE` | `/api/v1/expenses/{expense_id}` | Delete an expense record by ID |
 
 ---
 
@@ -225,20 +227,6 @@ http://localhost:8080
 ```
 
 The `instance.hostname` value should change between `app1`, `app2`, `app3`, `app4`, and `app5` containers over repeated requests.
-
-You can also inspect service status:
-
-```bash
-docker compose ps
-```
-
-And follow logs for all app containers:
-
-```bash
-docker compose logs -f app1 app2 app3 app4 app5 nginx
-```
-
-Nginx currently uses `least_conn`, so traffic is sent to the upstream container with the fewest active connections.
 
 ---
 
@@ -255,7 +243,9 @@ Nginx currently uses `least_conn`, so traffic is sent to the upstream container 
 ## Roadmap
 
 - [x] Implement Expense retrieval at `/api/v1/expenses`.
-- [ ] Implement full Expense CRUD operations (Create, Update, Delete) at `/api/v1/expenses`.
+- [x] Implement full Expense CRUD operations (Create, Update, Delete) at `/api/v1/expenses`.
+- [x] Implement Pydantic V2 validation models and date auto-generation.
+- [x] Implement layered architecture (`schemas`, `services`, `api`).
 - [ ] Add Category management endpoints at `/api/v1/categories`.
 - [ ] Connect SQLAlchemy or SQLModel with SQLite/PostgreSQL.
 - [ ] Add JWT authentication and authorization.

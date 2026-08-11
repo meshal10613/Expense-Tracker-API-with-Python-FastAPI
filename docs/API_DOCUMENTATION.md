@@ -1,6 +1,6 @@
 # API Documentation
 
-This document describes the currently available API endpoints and response formats.
+This document describes the available API endpoints, Pydantic validation rules, and response formats.
 
 ---
 
@@ -87,27 +87,13 @@ Returns a basic status response plus the process id and container hostname that 
 }
 ```
 
-#### cURL
-
-Local:
-
-```bash
-curl http://127.0.0.1:5000/
-```
-
-Through Nginx:
-
-```bash
-curl http://localhost:8080/
-```
-
 ---
 
 ### Get Expenses List
 
-Returns stored expense records loaded from `db/expenses.json`. Supports optional search by name, field sorting, and ordering.
+Returns stored expense records loaded from `db/expenses.json`. Supports optional search by name/category/description, field sorting, and ordering.
 
-- **URL**: `/api/v1/expenses` (or `/api/v1/expenses/`)
+- **URL**: `/api/v1/expenses`
 - **Method**: `GET`
 - **Authentication**: No
 
@@ -115,7 +101,7 @@ Returns stored expense records loaded from `db/expenses.json`. Supports optional
 
 | Parameter | Type | Required | Default | Description |
 | :--- | :--- | :--- | :--- | :--- |
-| `search` | `string` | No | `null` | Case-insensitive search on expense name |
+| `search` | `string` | No | `null` | Case-insensitive search on expense name, category, or description |
 | `sort_by` | `string` | No | `null` | Field to sort by: `id`, `name`, `amount`, `category`, `date`, `description` |
 | `order` | `string` | No | `"asc"` | Sort ordering: `asc` or `desc` |
 
@@ -139,36 +125,104 @@ Returns stored expense records loaded from `db/expenses.json`. Supports optional
 }
 ```
 
-#### cURL
+---
 
-All expenses:
+### Get Expense by ID
 
-```bash
-curl http://localhost:8080/api/v1/expenses/
+Returns a single expense record by ID.
+
+- **URL**: `/api/v1/expenses/{expense_id}`
+- **Method**: `GET`
+- **Authentication**: No
+
+---
+
+### Create Expense
+
+Creates a new expense record.
+
+- **URL**: `/api/v1/expenses/`
+- **Method**: `POST`
+- **Validation**: Enforced via Pydantic (`ExpenseCreate`)
+
+#### Payload Rules
+- `name`: `string` (Required, 1-100 characters)
+- `amount`: `number` (Required, > 0)
+- `category`: `string` (Required, 1-50 characters)
+- `description`: `string` (Required, max 500 characters)
+- `date`: `string` (Optional, ISO date `YYYY-MM-DD`). **Auto-generated** to today's date if omitted or set to `null`.
+
+#### Request Body Example
+```json
+{
+  "name": "Coffee & Snacks",
+  "amount": 12.50,
+  "category": "Food",
+  "description": "Afternoon coffee break"
+}
 ```
 
-Search and sort:
-
-```bash
-curl "http://localhost:8080/api/v1/expenses/?search=bill&sort_by=amount&order=desc"
+#### Response Example (`201 Created`)
+```json
+{
+  "success": true,
+  "message": "Expense created successfully with ID E011",
+  "data": {
+    "id": "E011",
+    "name": "Coffee & Snacks",
+    "amount": 12.5,
+    "category": "Food",
+    "date": "2026-08-11",
+    "description": "Afternoon coffee break"
+  }
+}
 ```
 
-#### Python Example
+---
 
-```python
-import requests
+### Update Expense
 
-response = requests.get(
-    "http://localhost:8080/api/v1/expenses/",
-    params={"search": "bill", "sort_by": "amount", "order": "desc"}
-)
-payload = response.json()
+Updates an existing expense record by ID.
 
-print(payload["success"])
-print(payload["message"])
-print(payload["data"])
+- **URL**: `/api/v1/expenses/{expense_id}`
+- **Method**: `PUT`
+- **Validation**: Enforced via Pydantic (`ExpenseUpdate`)
+
+#### Payload Rules
+- All fields (`name`, `amount`, `category`, `date`, `description`) are optional.
+- **Minimum 1 field requirement**: The request body must contain at least 1 field to update. Sending an empty JSON `{}` or all `null` fields returns `422 Unprocessable Entity`.
+
+#### Request Body Example
+```json
+{
+  "amount": 15.00
+}
 ```
+
+#### Response Example (`200 OK`)
+```json
+{
+  "success": true,
+  "message": "Expense with ID E011 updated successfully",
+  "data": {
+    "id": "E011",
+    "name": "Coffee & Snacks",
+    "amount": 15.0,
+    "category": "Food",
+    "date": "2026-08-11",
+    "description": "Afternoon coffee break"
+  }
+}
 ```
+
+---
+
+### Delete Expense
+
+Deletes an expense record by ID.
+
+- **URL**: `/api/v1/expenses/{expense_id}`
+- **Method**: `DELETE`
 
 ---
 
@@ -177,20 +231,10 @@ print(payload["data"])
 | Code | Status | Description |
 | :--- | :--- | :--- |
 | `200` | OK | Request processed successfully |
-| `400` | Bad Request | Invalid request data |
-| `404` | Not Found | Endpoint or resource does not exist |
-| `422` | Unprocessable Entity | Validation failed |
+| `201` | Created | Resource created successfully |
+| `400` | Bad Request | Invalid request parameters |
+| `404` | Not Found | Expense ID or route not found |
+| `422` | Unprocessable Entity | Pydantic validation failed |
 | `500` | Internal Server Error | Unexpected server error |
 | `502` | Bad Gateway | Nginx could not reach a healthy upstream |
 | `503` | Service Unavailable | Upstream service unavailable |
-
----
-
-## Planned Endpoints
-
-- `POST /api/v1/expenses`
-- `GET /api/v1/expenses`
-- `GET /api/v1/expenses/{id}`
-- `PUT /api/v1/expenses/{id}`
-- `DELETE /api/v1/expenses/{id}`
-- `GET /api/v1/categories`

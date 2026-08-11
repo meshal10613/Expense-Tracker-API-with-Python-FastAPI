@@ -1,17 +1,19 @@
 # Architecture & Design Overview
 
-This document describes the current architecture of the Expense Tracker API, including the FastAPI application, Docker Compose runtime, and Nginx load balancer.
+This document describes the architecture of the Expense Tracker API, including the FastAPI application, Pydantic validation schemas, service layer persistence, Docker Compose runtime, and Nginx load balancer.
 
 ---
 
 ## Architecture Principles
 
-1. **Modular routing**: API routes are grouped through FastAPI `APIRouter` modules.
-2. **Versioned APIs**: Current public API routes live under `/api/v1`.
-3. **Standard responses**: API endpoints use a shared response contract where appropriate.
-4. **Environment-based configuration**: `PORT` is read from the environment and defaults to `5000`.
-5. **Container-first runtime**: Docker Compose runs five FastAPI app containers behind Nginx.
-6. **Private app network**: FastAPI containers do not publish port `5000` to the host.
+1. **Layered Architecture**: Separation of concerns between HTTP routes (`app/api`), Pydantic validation (`app/schemas`), and business/storage logic (`app/services`).
+2. **Modular Routing**: API routes are grouped through FastAPI `APIRouter` modules.
+3. **Versioned APIs**: Current public API routes live under `/api/v1`.
+4. **Strict Schema Validation**: Request and response payloads are validated using Pydantic V2 models.
+5. **Standard Responses**: API endpoints use a shared response contract (`Success`, `Error`, `Meta`).
+6. **Environment-Based Configuration**: `PORT` is read from the environment and defaults to `5000`.
+7. **Container-First Runtime**: Docker Compose runs five FastAPI app containers behind Nginx.
+8. **Private App Network**: FastAPI containers do not publish port `5000` to the host.
 
 ---
 
@@ -36,6 +38,24 @@ graph TD
 ```
 
 Nginx communicates with `app1` through `app5` using Docker's internal DNS on the `backend` network.
+
+---
+
+## Application Layering
+
+```mermaid
+graph TD
+    Request["HTTP Request"] --> Router["app/api/v1/expenses/router.py"]
+    Router --> Schema["app/schemas/expense.py<br/>(Pydantic Validation)"]
+    Router --> Service["app/services/expense_service.py<br/>(Business & Persistence Logic)"]
+    Service --> Storage["db/expenses.json"]
+```
+
+- **Router Layer**: Parses path/query params, invokes schemas for validation, calls service methods, and wraps responses in `Success` payload objects.
+- **Schema Layer**: Defines `ExpenseCreate`, `ExpenseUpdate`, and `ExpenseResponse`.
+  - Automatically generates `date` (`YYYY-MM-DD`) if omitted on creation.
+  - Enforces minimum 1 field payload condition on update operations.
+- **Service Layer**: Handles ID generation (`E001`, `E002`), filtering/sorting algorithms, and thread-safe read/write operations to `db/expenses.json`.
 
 ---
 
@@ -85,122 +105,31 @@ upstream expense_tracker_api {
 }
 ```
 
-`least_conn` sends each request to the upstream container with the fewest active connections. For light manual browser refreshes, distribution may not appear perfectly round-robin, but repeated requests should show traffic reaching all five containers.
-
----
-
-## Request Lifecycle
-
-```mermaid
-sequenceDiagram
-    autonumber
-    actor Client
-    participant Nginx as Nginx :80
-    participant App as FastAPI appN:5000
-    participant Router as app/api/router.py
-    participant V1 as app/api/v1/router.py
-    participant Expenses as app/api/v1/expenses/router.py
-
-    Client->>Nginx: GET /api/v1/expenses on localhost:8080
-    Nginx->>App: Proxy request to one healthy upstream
-    App->>Router: Match /api
-    Router->>V1: Match /v1
-    V1->>Expenses: Match /expenses
-    Expenses-->>App: Return Success model payload with db/expenses.json
-    App-->>Nginx: JSON response
-    Nginx-->>Client: HTTP 200
-```
-
-For the root diagnostic endpoint:
-
-```mermaid
-sequenceDiagram
-    autonumber
-    actor Client
-    participant Nginx as Nginx :80
-    participant App as FastAPI appN:5000
-
-    Client->>Nginx: GET /
-    Nginx->>App: Proxy to one upstream container
-    App-->>Nginx: success, message, pid, hostname
-    Nginx-->>Client: JSON response
-```
-
----
-
-## Application Routing
-
-```mermaid
-graph TD
-    Main["app/main.py<br/>FastAPI app"]
-    ApiRouter["app/api/router.py<br/>/api"]
-    V1Router["app/api/v1/router.py<br/>/v1"]
-    ExpensesRouter["app/api/v1/expenses/router.py<br/>/expenses"]
-    ExpensesEndpoint["GET /expenses"]
-    Root["GET /"]
-
-    Main --> Root
-    Main --> ApiRouter
-    ApiRouter --> V1Router
-    V1Router --> ExpensesRouter
-    ExpensesRouter --> ExpensesEndpoint
-```
-
-Final endpoint paths:
-
-```text
-GET /
-GET /api/v1/expenses
-```
-
----
-
-## Health Checks
-
-Each app service runs a Docker health check against:
-
-```text
-http://127.0.0.1:5000/
-```
-
-Nginx has `depends_on` conditions so it starts after the five FastAPI services become healthy.
-
----
-
-## Root Diagnostic Response
-
-The root endpoint returns instance metadata:
-
-```json
-{
-  "success": true,
-  "message": "Hello, World!",
-  "instance": {
-    "pid": 1,
-    "hostname": "container-id"
-  }
-}
-```
-
-This response is intentionally not wrapped in `StandardResponse`; it exists to verify which container handled a request.
+`least_conn` sends each request to the upstream container with the fewest active connections.
 
 ---
 
 ## Extension Plan
 
-Recommended future structure for domain modules:
+Recommended structure for future domain modules (e.g., `categories`, `users`):
 
 ```text
-app/api/v1/
-├── auth/
-│   ├── routes.py
-│   ├── schemas.py
-│   └── service.py
-├── users/
-│   ├── routes.py
-│   ├── schemas.py
-│   └── service.py
-└── router.py
+app/
+├── schemas/
+│   ├── expense.py
+│   ├── category.py
+│   └── user.py
+├── services/
+│   ├── expense_service.py
+│   ├── category_service.py
+│   └── user_service.py
+└── api/
+    └── v1/
+        ├── expenses/
+        │   └── router.py
+        ├── categories/
+        │   └── router.py
+        └── router.py
 ```
 
-Keep HTTP concerns in `routes.py`, validation models in `schemas.py`, and business logic in `service.py`.
+Keep HTTP concerns in `router.py`, validation models in `app/schemas/`, and data persistence in `app/services/`.
